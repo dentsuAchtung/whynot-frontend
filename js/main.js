@@ -9,7 +9,7 @@ gsap.registerPlugin(ScrollTrigger);
 
         setTimeout(function () {
 
-        gsap.to(".heading-element", {
+        gsap.to(".parallax", {
             scrollTrigger: {
               scrub: true
             }, 
