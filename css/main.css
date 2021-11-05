@@ -5,33 +5,100 @@ html {
   font-size: 1em;
   line-height: 1.4;
   background: black;
+  overflow-x: hidden;
 }
 
 body{
  font-family: 'AchtungIsobar', "Helvetica Neue", Helvetica, Arial, sans-serif;
  margin: 0 8px 80px 8px;
+ overflow-x: hidden;
+}
+
+.p-canvas-webgl {
+  position: fixed;
+  z-index: 0;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .container{
   width: 100%;
   max-width: 900px;
   margin: auto;
+  pointer-events: none;
 }
 
-.heading{
+.heading-container{
   width: 100% !important;
+  position: relative;
+  overflow: hidden;
+  pointer-events: none !important;
+
+}
+.heading-img{
+  width: 100% !important;
+}
+.heading-element{
+  position: absolute;
+  top:0%;
+  left:0%;
+  width: 100%;
+  height: 100%;
+  
+  background-position: center center;
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+.heading-element.question{
+  width:16%;
+  height: auto;
+  left:72.5%;
+  top:26%;
+  transition: transform 0.2s cubic-bezier(0.64, 0.57, 0.67, 1.53);
+  pointer-events: all;
+  cursor: pointer;
+}
+.heading-element.question:hover{
+  transform: rotate(5deg) scale(1.1);
+}
+.heading-element.question:active{
+  transform: rotate(-20deg) scale(0.5);
+}
+.heading-element.question img{
+  width: 100% !important;
+}
+.heading-element.cloud1{
+background-image: url(../img/Cloud1.png);
+}
+.heading-element.cloud2{
+  background-image: url(../img/Cloud2.png);
+}
+.heading-element.rocket{
+  background-image: url(../img/Rocket.png);
+  transition: transform 0.7s cubic-bezier(0.64, 0.57, 0.67, 1.53);
+}
+.heading-element.title{
+  background-image: url(../img/Title.png);
+}
+
+.heading-container.initial .rocket{
+  transform: translateX(-23%) translateY(90%);
 }
 
 .latest-events{
   background:white;
-  border-radius: 0 0 40px 40px;
-  padding: 30px 0;
+  border-radius: 0 0 30px 30px;
+  padding: 5px 0;
   display: flex;
   flex-direction: column;
+  overflow:hidden;
+  pointer-events: all;
+  z-index: 10;
+  position: relative;
 }
 .event{
   width: 90%;
-  height: 200px;
   border-radius: 20px;
   background: rgba(0,0,0,0.02);
   display: block;
@@ -61,7 +128,7 @@ body{
   justify-content: center;
   padding: 20px 5px;
   position: relative;
-  font-size: 2rem;
+  font-size: 1.3rem;
   margin-top: 50px;
 }
 .submit:hover{
@@ -81,8 +148,8 @@ body{
 
 .event .graphic{
   border-radius: 20px;
-  width:  200px;
-  height: 200px;
+  width:  120px;
+  height: 120px;
   background: black;
   overflow: hidden;
   display: flex;
@@ -105,8 +172,8 @@ body{
   top:50%;
   right:-150px;
   transform: translateY(-50%);
-  width:100px;
-  height: 100px;
+  width:50px;
+  height: 50px;
   border-radius: 100px;
   background: black;
   transition: right 0.19s cubic-bezier(0.64, 0.57, 0.67, 1.53);
@@ -116,10 +183,10 @@ body{
   content:'';
   position: absolute;
   top:50%;
-  right:7%;
+  right:0px;
   transform: translateY(-50%);
-  width:100px;
-  height: 100px;
+  width:50px;
+  height: 50px;
   border-radius: 100px;
   background-size: 50%;
   background-position: center center;
@@ -131,10 +198,6 @@ body{
 }
 .event.ready:hover::before{
   background-image: url('data:image/svg+xml,<svg style="fill:white" width="100pt" height="100pt" version="1.1" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="m28.309 19.844-0.31641-0.70703v-11.141c0-0.86719 1.1016-1.3398 1.7305-0.70703l41.969 42.008c0.39453 0.39453 0.39453 1.0234 0 1.418l-41.969 42.008c-0.62891 0.62891-1.7305 0.15625-1.7305-0.70703l0.039062-11.457c0.43359-1.2617 27.125-27.285 30.434-30.551l-30.156-30.156z"/></svg>');
-}
-
-.event.ready:hover::after{
-  right:7%;
 }
 
 .event:active{
@@ -167,6 +230,29 @@ body{
     .event{
       padding: 20px;
     }
+    .event .graphic{
+      width:  200px;
+      height: 200px;
+    }
+    .event.ready::before{
+      right:7%;
+      width:100px;
+      height: 100px;
+    }
+    .event.ready::after{
+      right:-150px;
+      width:100px;
+      height: 100px;
+      transform: translateX(-3px) translateY(-50%);
+    }
+    .event.ready:hover::after{
+      right:7%;
+    }
+    .submit{
+      font-size: 2rem;
+      padding: 30px 5px;
+
+    }
     .info{
       margin-left:50px;
     }
@@ -179,6 +265,10 @@ body{
     .subtitle{
       font-size:1.3rem;
       margin-bottom:0px;
+    }
+    .latest-events{
+      border-radius: 0 0 40px 40px;
+      padding: 30px 0;
     }
 
 }
