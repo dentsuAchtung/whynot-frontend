@@ -1,15 +1,45 @@
 gsap.registerPlugin(ScrollTrigger);
 
 
+  
  $( document ).ready(function() {
     setTimeout(function () {
-        $( ".heading-container" ).removeClass( "initial" );
+        $("body").removeClass("loading");
+        $( "body" ).addClass( "loaded" );
+
+        setTimeout(function () {
+
+        gsap.to(".heading-element", {
+            scrollTrigger: {
+              scrub: true
+            }, 
+            y: (i, target) => -ScrollTrigger.maxScroll(window) * target.dataset.speed,
+            ease: "none"
+        });
+    }, 800);
+
      }, 500);
     
 });
 
-$( "#question" ).click(function() {
+let clicked = false;
+let animate = false;
+
+$("#question").click(function () {
+    animate = !animate;
     update();
+    if (!clicked) {
+        splatStack.push(parseInt(Math.random() * 20) + 5);
+        splatStack.push(parseInt(Math.random() * 20) + 5);
+        splatStack.push(parseInt(Math.random() * 20) + 5);
+        splatStack.push(parseInt(Math.random() * 20) + 5);
+        splatStack.push(parseInt(Math.random() * 20) + 5);
+        splatStack.push(parseInt(Math.random() * 20) + 5);
+        splatStack.push(parseInt(Math.random() * 20) + 5);
+        clicked = true;
+    }
+
+
   });
 'use strict';
 
@@ -24,8 +54,10 @@ var config = {
     VELOCITY_DISSIPATION: 0.99,
     PRESSURE_DISSIPATION: 0.8,
     PRESSURE_ITERATIONS: 25,
-    CURL: 30,
-    SPLAT_RADIUS: 0.005
+    CURL: 10,
+    COLORFUL: false,
+    SPLAT_RADIUS: 0.007,
+    SPLAT_FORCE: 6000,
 };
 
 var pointers   = [];
@@ -257,104 +289,109 @@ var lastTime = Date.now();
 function update() {
 
     resizeCanvas();
-
-    var dt = Math.min( (Date.now() - lastTime) / 1000, 0.016 );
+    var dt = Math.min((Date.now() - lastTime) / 1000, 0.016);
     lastTime = Date.now();
 
-    gl.viewport( 0, 0, textureWidth, textureHeight );
-
-    if ( splatStack.length > 0 ) {
-        for ( var m = 0; m < splatStack.pop(); m++ ) {
-
-            var color = [ Math.random() * 10, Math.random() * 10, Math.random() * 10 ];
-            var x     = canvas.width * Math.random();
-            var y     = canvas.height * Math.random();
-            var dx    = 1000 * (Math.random() - 0.5);
-            var dy    = 1000 * (Math.random() - 0.5);
-
-            splat( x, y, dx, dy, color );
+    
+        gl.viewport( 0, 0, textureWidth, textureHeight );
+    
+        if ( splatStack.length > 0 ) {
+            for ( var m = 0; m < splatStack.pop(); m++ ) {
+    
+                var color = [  10, 10, 10 ];
+                var x     = canvas.width * Math.random();
+                var y     = canvas.height * Math.random();
+                var dx    = 1000 * (Math.random() - 0.5);
+                var dy    = 1000 * (Math.random() - 0.5);
+    
+                splat( x, y, dx, dy, color );
+            }
         }
-    }
+    
+        advectionProgram.bind();
+        gl.uniform2f( advectionProgram.uniforms.texelSize, 1.0 / textureWidth, 1.0 / textureHeight );
+        gl.uniform1i( advectionProgram.uniforms.uVelocity, velocity.first[ 2 ] );
+        gl.uniform1i( advectionProgram.uniforms.uSource, velocity.first[ 2 ] );
+        gl.uniform1f( advectionProgram.uniforms.dt, dt );
+        gl.uniform1f( advectionProgram.uniforms.dissipation, config.VELOCITY_DISSIPATION );
+        blit( velocity.second[ 1 ] );
+        velocity.swap();
+    
+        gl.uniform1i( advectionProgram.uniforms.uVelocity, velocity.first[ 2 ] );
+        gl.uniform1i( advectionProgram.uniforms.uSource, density.first[ 2 ] );
+        gl.uniform1f( advectionProgram.uniforms.dissipation, config.DENSITY_DISSIPATION );
+        blit( density.second[ 1 ] );
+        density.swap();
+    
+        for ( var i = 0, len =  pointers.length; i < len; i++ ) {
+            var pointer = pointers[ i ];
+    
+            
+            if (pointer.moved) {
+                if (animate) {
 
-    advectionProgram.bind();
-    gl.uniform2f( advectionProgram.uniforms.texelSize, 1.0 / textureWidth, 1.0 / textureHeight );
-    gl.uniform1i( advectionProgram.uniforms.uVelocity, velocity.first[ 2 ] );
-    gl.uniform1i( advectionProgram.uniforms.uSource, velocity.first[ 2 ] );
-    gl.uniform1f( advectionProgram.uniforms.dt, dt );
-    gl.uniform1f( advectionProgram.uniforms.dissipation, config.VELOCITY_DISSIPATION );
-    blit( velocity.second[ 1 ] );
-    velocity.swap();
-
-    gl.uniform1i( advectionProgram.uniforms.uVelocity, velocity.first[ 2 ] );
-    gl.uniform1i( advectionProgram.uniforms.uSource, density.first[ 2 ] );
-    gl.uniform1f( advectionProgram.uniforms.dissipation, config.DENSITY_DISSIPATION );
-    blit( density.second[ 1 ] );
-    density.swap();
-
-    for ( var i = 0, len =  pointers.length; i < len; i++ ) {
-        var pointer = pointers[ i ];
-
-        if ( pointer.moved ) {
-            splat( pointer.x, pointer.y, pointer.dx, pointer.dy, pointer.color );
-            pointer.moved = false;
+                    splat(pointer.x, pointer.y, pointer.dx, pointer.dy, pointer.color);
+                }
+                pointer.moved = false;
+            }
         }
-    }
-
-    curlProgram.bind();
-    gl.uniform2f( curlProgram.uniforms.texelSize, 1.0 / textureWidth, 1.0 / textureHeight );
-    gl.uniform1i( curlProgram.uniforms.uVelocity, velocity.first[ 2 ] );
-    blit( curl[ 1 ] );
-
-    vorticityProgram.bind();
-    gl.uniform2f( vorticityProgram.uniforms.texelSize, 1.0 / textureWidth, 1.0 / textureHeight );
-    gl.uniform1i( vorticityProgram.uniforms.uVelocity, velocity.first[ 2 ] );
-    gl.uniform1i( vorticityProgram.uniforms.uCurl, curl[ 2 ] );
-    gl.uniform1f( vorticityProgram.uniforms.curl, config.CURL );
-    gl.uniform1f( vorticityProgram.uniforms.dt, dt );
-    blit( velocity.second[ 1 ] );
-    velocity.swap();
-
-    divergenceProgram.bind();
-    gl.uniform2f( divergenceProgram.uniforms.texelSize, 1.0 / textureWidth, 1.0 / textureHeight );
-    gl.uniform1i( divergenceProgram.uniforms.uVelocity, velocity.first[ 2 ] );
-    blit( divergence[ 1 ] );
-
-    clearProgram.bind();
-
-    var pressureTexId = pressure.first[ 2 ];
-
-    gl.activeTexture( gl.TEXTURE0 + pressureTexId );
-    gl.bindTexture( gl.TEXTURE_2D, pressure.first[ 0 ] );
-    gl.uniform1i( clearProgram.uniforms.uTexture, pressureTexId );
-    gl.uniform1f( clearProgram.uniforms.value, config.PRESSURE_DISSIPATION );
-    blit( pressure.second[ 1 ] );
-    pressure.swap();
-
-    pressureProgram.bind();
-    gl.uniform2f( pressureProgram.uniforms.texelSize, 1.0 / textureWidth, 1.0 / textureHeight );
-    gl.uniform1i( pressureProgram.uniforms.uDivergence, divergence[ 2 ] );
-    pressureTexId = pressure.first[ 2 ];
-    gl.activeTexture( gl.TEXTURE0 + pressureTexId );
-
-    for ( var _i = 0; _i < config.PRESSURE_ITERATIONS; _i++ ) {
+    
+        curlProgram.bind();
+        gl.uniform2f( curlProgram.uniforms.texelSize, 1.0 / textureWidth, 1.0 / textureHeight );
+        gl.uniform1i( curlProgram.uniforms.uVelocity, velocity.first[ 2 ] );
+        blit( curl[ 1 ] );
+    
+        vorticityProgram.bind();
+        gl.uniform2f( vorticityProgram.uniforms.texelSize, 1.0 / textureWidth, 1.0 / textureHeight );
+        gl.uniform1i( vorticityProgram.uniforms.uVelocity, velocity.first[ 2 ] );
+        gl.uniform1i( vorticityProgram.uniforms.uCurl, curl[ 2 ] );
+        gl.uniform1f( vorticityProgram.uniforms.curl, config.CURL );
+        gl.uniform1f( vorticityProgram.uniforms.dt, dt );
+        blit( velocity.second[ 1 ] );
+        velocity.swap();
+    
+        divergenceProgram.bind();
+        gl.uniform2f( divergenceProgram.uniforms.texelSize, 1.0 / textureWidth, 1.0 / textureHeight );
+        gl.uniform1i( divergenceProgram.uniforms.uVelocity, velocity.first[ 2 ] );
+        blit( divergence[ 1 ] );
+    
+        clearProgram.bind();
+    
+        var pressureTexId = pressure.first[ 2 ];
+    
+        gl.activeTexture( gl.TEXTURE0 + pressureTexId );
         gl.bindTexture( gl.TEXTURE_2D, pressure.first[ 0 ] );
-        gl.uniform1i( pressureProgram.uniforms.uPressure, pressureTexId );
+        gl.uniform1i( clearProgram.uniforms.uTexture, pressureTexId );
+        gl.uniform1f( clearProgram.uniforms.value, config.PRESSURE_DISSIPATION );
         blit( pressure.second[ 1 ] );
         pressure.swap();
-    }
-
-    gradienSubtractProgram.bind();
-    gl.uniform2f( gradienSubtractProgram.uniforms.texelSize, 1.0 / textureWidth, 1.0 / textureHeight );
-    gl.uniform1i( gradienSubtractProgram.uniforms.uPressure, pressure.first[ 2 ] );
-    gl.uniform1i( gradienSubtractProgram.uniforms.uVelocity, velocity.first[ 2 ] );
-    blit( velocity.second[ 1 ] );
-    velocity.swap();
-
-    gl.viewport( 0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight );
-    displayProgram.bind();
-    gl.uniform1i( displayProgram.uniforms.uTexture, density.first[ 2 ] );
-    blit( null );
-
+    
+        pressureProgram.bind();
+        gl.uniform2f( pressureProgram.uniforms.texelSize, 1.0 / textureWidth, 1.0 / textureHeight );
+        gl.uniform1i( pressureProgram.uniforms.uDivergence, divergence[ 2 ] );
+        pressureTexId = pressure.first[ 2 ];
+        gl.activeTexture( gl.TEXTURE0 + pressureTexId );
+    
+        for ( var _i = 0; _i < config.PRESSURE_ITERATIONS; _i++ ) {
+            gl.bindTexture( gl.TEXTURE_2D, pressure.first[ 0 ] );
+            gl.uniform1i( pressureProgram.uniforms.uPressure, pressureTexId );
+            blit( pressure.second[ 1 ] );
+            pressure.swap();
+        }
+    
+        gradienSubtractProgram.bind();
+        gl.uniform2f( gradienSubtractProgram.uniforms.texelSize, 1.0 / textureWidth, 1.0 / textureHeight );
+        gl.uniform1i( gradienSubtractProgram.uniforms.uPressure, pressure.first[ 2 ] );
+        gl.uniform1i( gradienSubtractProgram.uniforms.uVelocity, velocity.first[ 2 ] );
+        blit( velocity.second[ 1 ] );
+        velocity.swap();
+    
+        gl.viewport( 0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight );
+        displayProgram.bind();
+        gl.uniform1i( displayProgram.uniforms.uTexture, density.first[ 2 ] );
+        blit( null );
+    
+    
     requestAnimationFrame( update );
 
 }
@@ -384,13 +421,13 @@ function resizeCanvas() {
 }
 
 var count    = 0;
-var colorArr = [ Math.random() + 0.2, Math.random() + 0.2, Math.random() + 0.2 ];
+var colorArr = [  0.2,  0.2,  0.2 ];
 
 canvas.addEventListener( 'mousemove', function ( e ) {
 
     count++;
 
-    ( count > 25 ) && (colorArr = [ Math.random() + 0.2, Math.random() + 0.2, Math.random() + 0.2 ], count = 0);
+    ( count > 25 ) && (colorArr = [ Math.random() + 0.4, 0, 0.1 ], count = 0);
 
     pointers[ 0 ].down  = true;
     pointers[ 0 ].color = colorArr;
@@ -401,6 +438,42 @@ canvas.addEventListener( 'mousemove', function ( e ) {
     pointers[ 0 ].y     = e.offsetY;
 
 } );
+function multipleSplats (amount) {
+    for (let i = 0; i < amount; i++) {
+
+        const x = Math.random();
+        const y = Math.random();
+        const dx = 1000 * (Math.random() - 0.5);
+        const dy = 1000 * (Math.random() - 0.5);
+        splat( x, y, dx, dy, [ 20, 0, 0 ] );
+
+    }
+}
+
+function HSVtoRGB (h, s, v) {
+    let r, g, b, i, f, p, q, t;
+    i = Math.floor(h * 6);
+    f = h * 6 - i;
+    p = v * (1 - s);
+    q = v * (1 - f * s);
+    t = v * (1 - (1 - f) * s);
+
+    switch (i % 6) {
+        case 0: r = v, g = t, b = p; break;
+        case 1: r = q, g = v, b = p; break;
+        case 2: r = p, g = v, b = t; break;
+        case 3: r = p, g = q, b = v; break;
+        case 4: r = t, g = p, b = v; break;
+        case 5: r = v, g = p, b = q; break;
+    }
+
+    return {
+        r,
+        g,
+        b
+    };
+}
+
 
 canvas.addEventListener( 'touchmove', function ( e ) {
 
