@@ -176,7 +176,11 @@ opacity: 0;
   padding: 5px;
   position: relative;
   text-decoration: none;
-  color: black;
+  color: #ccc;
+}
+
+.event.planned{
+  color: #000;
 }
 
 .submit{
@@ -197,6 +201,7 @@ opacity: 0;
   position: relative;
   font-size: 1.3rem;
   margin-top: 50px;
+  text-decoration: none;
 }
 .submit:hover{
   background: black;
@@ -228,7 +233,7 @@ opacity: 0;
   object-fit: cover;
 }
 
-.event:hover{
+.event.ready:hover{
   cursor: pointer;
   background: #eeeeee;
 }
